@@ -23,8 +23,8 @@ void setup_tasks()
     xTaskCreate(
         task_bluetooth,
         "Bluetooth",
-        512 * 6,
+        512 * 8,
         NULL,
-        1000,
+        24,
         NULL);
 }
