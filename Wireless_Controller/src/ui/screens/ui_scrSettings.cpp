@@ -142,7 +142,9 @@ void ScrSettings::init()
     new Option(this->optionsContainer, OptionType::SPACE, "");
     new Option(this->optionsContainer, OptionType::HEADER, "Controller Settings");
 
-    new Option(this->optionsContainer, OptionType::KEYBOARD_INPUT_NUMBER, "Dim Screen (Minutes)", {.INT = getscreenDimTimeM()}, [](void *data)
+    OptionValue dimScreenValue;
+    dimScreenValue.INT = getscreenDimTimeM();
+    new Option(this->optionsContainer, OptionType::KEYBOARD_INPUT_NUMBER, "Dim Screen (Minutes)", dimScreenValue, [](void *data)
                { log_i("Pressed %i", ((uint32_t)data));
         setscreenDimTimeM((uint32_t)data); });
 
@@ -155,7 +157,9 @@ void ScrSettings::init()
         sendConfigValuesPacket(true);
     alertValueUpdated(); });
 
-    new Option(this->optionsContainer, OptionType::KEYBOARD_INPUT_NUMBER, "Bluetooth Passkey (6 digits)" /*"BLE_PASSKEY"*/, {.INT = getblePasskey()}, [](void *data)
+    OptionValue blePasskeyValue;
+    blePasskeyValue.INT = getblePasskey();
+    new Option(this->optionsContainer, OptionType::KEYBOARD_INPUT_NUMBER, "Bluetooth Passkey (6 digits)" /*"BLE_PASSKEY"*/, blePasskeyValue, [](void *data)
                { log_i("Pressed %i", (data));
         setblePasskey((uint32_t)data); // save locally
         if (isConnectedToManifold()) {
