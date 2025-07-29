@@ -36,15 +36,15 @@ void task_bluetooth(void *parameters)
     }
 #endif
 }
-bool do_dance = false;
-void easterEggFunc()
-{
-    if (do_dance)
-    {
-        do_dance = false;
-        doDance();
-    }
-}
+// bool do_dance = false;
+// void easterEggFunc()
+// {
+//     if (do_dance)
+//     {
+//         do_dance = false;
+//         doDance();
+//     }
+// }
 #if SCREEN_ENABLED == true
 void task_screen(void *parameters)
 {
@@ -55,7 +55,7 @@ void task_screen(void *parameters)
         {
             easterEggFunc();
             Serial.println(F("SSD1306 allocation failed!"));
-            delay(100);
+            delay(200);
         }
     }
     drawsplashscreen();
@@ -63,7 +63,7 @@ void task_screen(void *parameters)
     {
         drawPSIReadings();
         easterEggFunc();
-        delay(100); // 10fps should be plenty
+        delay(200); // 10fps should be plenty
     }
 }
 
@@ -77,7 +77,7 @@ void task_ps3_controller(void *parameters)
     for (;;)
     {
         ps3_controller_loop();
-        delay(100);
+        delay(200);
     }
 }
 #endif
@@ -87,7 +87,7 @@ void task_compressor(void *parameters)
     for (;;)
     {
         getCompressor()->loop();
-        delay(100);
+        delay(200);
     }
 }
 
@@ -97,7 +97,7 @@ void task_wheel(void *parameters)
     for (;;)
     {
         ((Wheel *)parameters)->loop();
-        delay(100);
+        delay(200);
     }
 }
 
@@ -114,7 +114,7 @@ void task_parabolaLearn(void *parameters)
             ESP.restart();
             return;
         }
-        delay(100);
+        delay(200);
     }
 }
 
@@ -145,7 +145,7 @@ void setup_tasks()
         "Bluetooth",
         512 * 5,
         NULL,
-        1000,
+        5,
         NULL);
 
 #if SCREEN_ENABLED == true
@@ -155,7 +155,7 @@ void setup_tasks()
         "OLED",
         512 * 4,
         NULL,
-        1000,
+        4,
         NULL);
 #endif
 
@@ -165,7 +165,7 @@ void setup_tasks()
         "Compressor Control",
         512 * 4,
         NULL,
-        1000,
+        3,
         NULL);
 
     // Wheel Tasks
@@ -176,7 +176,7 @@ void setup_tasks()
             "Wheel Task",
             512 * 5,
             getWheel(i),
-            1000,
+            2,
             NULL);
     }
 
@@ -187,7 +187,7 @@ void setup_tasks()
         "PS3 Controller",
         512 * 5,
         NULL,
-        1000,
+        6,
         NULL);
 #endif
 
@@ -197,6 +197,6 @@ void setup_tasks()
         "trainAI",
         512 * 4,
         NULL,
-        1000,
+        1,
         NULL);
 }

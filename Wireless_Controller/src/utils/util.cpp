@@ -254,7 +254,7 @@ static void kb_event_cb(lv_event_t *e)
 {
 
     lv_event_code_t event_code = lv_event_get_code(e);
-    lv_obj_t *target = (lv_obj_t *)lv_event_get_target(e);
+    // lv_obj_t *target = (lv_obj_t *)lv_event_get_target(e);
     Option *option = (Option *)lv_event_get_user_data(e);
     if (event_code == LV_EVENT_CANCEL)
     {
@@ -300,10 +300,29 @@ void initKB(Option *option)
         lv_keyboard_set_mode(kb, LV_KEYBOARD_MODE_TEXT_LOWER);
     }
     lv_obj_add_event_cb(kb, kb_event_cb, LV_EVENT_ALL, option);
-    lv_obj_set_style_bg_color(kb, lv_color_hex(THEME_COLOR_DARK), LV_PART_MAIN | LV_STATE_DEFAULT);    // lines in between buttons
-    lv_obj_set_style_bg_color(kb, lv_color_hex(THEME_COLOR_LIGHT), LV_PART_ITEMS | LV_STATE_DEFAULT);  // buttons
-    lv_obj_set_style_bg_color(kb, lv_color_hex(THEME_COLOR_LIGHT), LV_PART_ITEMS | LV_STATE_CHECKED);  // buttons (keyboard and checkmark)
-    lv_obj_set_style_bg_color(kb, lv_color_hex(THEME_COLOR_MEDIUM), LV_PART_ITEMS | LV_STATE_FOCUSED); // When pressing down on the buttons
+    lv_obj_set_style_bg_color(kb,
+        lv_color_hex(THEME_COLOR_DARK),
+        static_cast<lv_style_selector_t>(LV_PART_MAIN)  |
+        static_cast<lv_style_selector_t>(LV_STATE_DEFAULT)
+        );
+
+        lv_obj_set_style_bg_color(kb,
+        lv_color_hex(THEME_COLOR_LIGHT),
+        static_cast<lv_style_selector_t>(LV_PART_ITEMS) |
+        static_cast<lv_style_selector_t>(LV_STATE_DEFAULT)
+        );
+
+        lv_obj_set_style_bg_color(kb,
+        lv_color_hex(THEME_COLOR_LIGHT),
+        static_cast<lv_style_selector_t>(LV_PART_ITEMS) |
+        static_cast<lv_style_selector_t>(LV_STATE_CHECKED)
+        );
+
+        lv_obj_set_style_bg_color(kb,
+        lv_color_hex(THEME_COLOR_MEDIUM),
+        static_cast<lv_style_selector_t>(LV_PART_ITEMS) |
+        static_cast<lv_style_selector_t>(LV_STATE_FOCUSED)
+        );
 }
 
 void ta_event_cb(lv_event_t *e)

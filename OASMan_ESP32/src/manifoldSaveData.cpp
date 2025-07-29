@@ -20,18 +20,17 @@ int getLearnDataLength(SOLENOID_AI_INDEX index)
 
 const char *getLogFileName(SOLENOID_AI_INDEX index)
 {
-    switch (index)
-    {
-    case SOLENOID_AI_INDEX::AI_MODEL_UP_FRONT:
-        return "/UpDataF.dat";
-    case SOLENOID_AI_INDEX::AI_MODEL_UP_REAR:
-        return "/UpDataR.dat";
-    case SOLENOID_AI_INDEX::AI_MODEL_DOWN_FRONT:
-        return "/DownDataF.dat";
-    case SOLENOID_AI_INDEX::AI_MODEL_DOWN_REAR:
-        return "/DownDataR.dat";
+    switch (index) {
+      case AI_MODEL_UP_FRONT:   return "/UpDataF.dat";
+      case AI_MODEL_UP_REAR:    return "/UpDataR.dat";
+      case AI_MODEL_DOWN_FRONT: return "/DownDataF.dat";
+      case AI_MODEL_DOWN_REAR:  return "/DownDataR.dat";
+      default:
+        // Invalid index! You could log an error here.
+        return nullptr;
     }
 }
+
 
 void initDataFile(SOLENOID_AI_INDEX index)
 {

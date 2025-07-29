@@ -112,13 +112,32 @@ void setup()
     // }
 }
 
-void loop()
-{
-    accessoryWireLoop();
-    if (getinternalReboot() == true)
-    {
-        ESP.restart();
+void loop() {
+#if TEST_MODE
+  static int16_t simPressure[4] = {100,100,100,100};
+  // Read keys to bump each wheel’s pressure up/down
+  while (Serial.available()) {
+    char c = Serial.read();
+    switch(c) {
+      case '1': simPressure[0] += 10; break;
+      case 'q': simPressure[0] -= 10; break;
+      case '2': simPressure[1] += 10; break;
+      case 'w': simPressure[1] -= 10; break;
+      // …and so on for wheels 2 & 3…
     }
+  }
+  // Clamp & print
+  for (int i = 0; i < 4; i++) {
+    simPressure[i] = constrain(simPressure[i], 0, 4095);
+    Serial.printf("Wheel %d = %d\n", i, simPressure[i]);
+  }
+  Serial.println();
+  delay(200);
 
-    delay(100);
+  if (getinternalReboot()) ESP.restart();
+#else
+  accessoryWireLoop();
+  if (getinternalReboot()) ESP.restart();
+  delay(100);
+#endif
 }
