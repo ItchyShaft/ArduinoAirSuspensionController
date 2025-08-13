@@ -4,31 +4,41 @@
 // Project name: SquareLine_Project
 
 #include "Scr.h"
-#include "ui/ui.h" // sketchy backwards import may break in the future
+#include "ui/ui.h"   // for changeScreen(), etc.
+#include "alert.h"
+#include "utils/util.h"
+#include "utils/touch_lib.h"
+
+// --- small helpers ---
+static inline const char* safeTxt(const char* s){ return s ? s : ""; }
+static inline bool hasTxt(const char* s){ return s && *s; }
+
+// User data we attach to each msgbox button
+struct MsgBtnData {
+    Scr* self;
+    void (*cb)();
+};
 
 Scr::Scr(lv_image_dsc_t navbarImage, bool showPressures)
 {
-    this->navbarImage = navbarImage;
+    this->navbarImage   = navbarImage;
     this->showPressures = showPressures;
 }
 
 void Scr::init()
 {
     this->scr = lv_obj_create(NULL);
-    lv_obj_remove_flag(this->scr, LV_OBJ_FLAG_SCROLLABLE); /// Flags
+    lv_obj_remove_flag(this->scr, LV_OBJ_FLAG_SCROLLABLE);
 
-    this->mb_dialog = NULL;
-    this->deleteMessageBoxNextFrame = false;
-
-    // background color
+    // background
     this->rect_bg = lv_obj_create(this->scr);
     lv_obj_remove_style_all(this->rect_bg);
     lv_obj_set_size(this->rect_bg, 240, 320);
     lv_obj_set_align(this->rect_bg, LV_ALIGN_TOP_MID);
-    lv_obj_get_style_border_width(this->rect_bg, 0);
-    lv_obj_set_style_bg_color(this->rect_bg, lv_color_hex(GENERIC_GREY_DARK), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_remove_flag(this->rect_bg, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE)); /// Flags
-    lv_obj_set_style_bg_opa(this->rect_bg, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(this->rect_bg, 0, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(this->rect_bg, lv_color_hex(GENERIC_GREY_DARK), LV_PART_MAIN);
+    lv_obj_remove_flag(this->rect_bg, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
+    lv_obj_set_style_bg_opa(this->rect_bg, 255, LV_PART_MAIN);
 
     // navbar image
     this->icon_navbar = lv_image_create(this->scr);
@@ -39,18 +49,15 @@ void Scr::init()
 
     if (this->showPressures)
     {
-        // air pressures at top
-        const int xPadding = 72; // pixels from center to end up centered above left/right buttons
-        // for some reas the text is not letting me specify something like "top right" then centering the text over that coordinate. Instead we must use top mid so that it is centered on ittself (ie grows both left and right with width chantge) and then set the offset of that from center.
-        setupPressureLabel(this->scr, &this->ui_lblPressureFrontDriver, -xPadding, 10, LV_ALIGN_TOP_MID, "0");
-        setupPressureLabel(this->scr, &this->ui_lblPressureRearDriver, -xPadding, 40, LV_ALIGN_TOP_MID, "0");
-        setupPressureLabel(this->scr, &this->ui_lblPressureFrontPassenger, xPadding, 10, LV_ALIGN_TOP_MID, "0");
-        setupPressureLabel(this->scr, &this->ui_lblPressureRearPassenger, xPadding, 40, LV_ALIGN_TOP_MID, "0");
-        setupPressureLabel(this->scr, &this->ui_lblPressureTank, 0, 10, LV_ALIGN_TOP_MID, "0");
+        const int xPadding = 72;
+        setupPressureLabel(this->scr, &this->ui_lblPressureFrontDriver,     -xPadding, 10, LV_ALIGN_TOP_MID, "0");
+        setupPressureLabel(this->scr, &this->ui_lblPressureRearDriver,      -xPadding, 40, LV_ALIGN_TOP_MID, "0");
+        setupPressureLabel(this->scr, &this->ui_lblPressureFrontPassenger,   xPadding, 10, LV_ALIGN_TOP_MID, "0");
+        setupPressureLabel(this->scr, &this->ui_lblPressureRearPassenger,    xPadding, 40, LV_ALIGN_TOP_MID, "0");
+        setupPressureLabel(this->scr, &this->ui_lblPressureTank,                  0, 10, LV_ALIGN_TOP_MID, "0");
     }
 }
 
-// down = true when just pressed, false when just released
 void Scr::runTouchInput(SimplePoint pos, bool down)
 {
     if (down)
@@ -59,124 +66,106 @@ void Scr::runTouchInput(SimplePoint pos, bool down)
         {
             if (!isMsgBoxDisplayed())
             {
-                if (sr_contains(navbarbtn_home, pos))
-                {
-                    changeScreen(SCREEN_HOME);
-                }
-                if (sr_contains(navbarbtn_presets, pos))
-                {
-                    changeScreen(SCREEN_PRESETS);
-                }
-                if (sr_contains(navbarbtn_settings, pos))
-                {
-                    changeScreen(SCREEN_SETTINGS);
-                }
+                if (sr_contains(navbarbtn_home, pos))     { changeScreen(SCREEN_HOME); }
+                if (sr_contains(navbarbtn_presets, pos))  { changeScreen(SCREEN_PRESETS); }
+                if (sr_contains(navbarbtn_settings, pos)) { changeScreen(SCREEN_SETTINGS); }
             }
         }
     }
     else
     {
-        if (this->mb_dialog != NULL)
-        {
-            if (this->mb_force_button_press == false)
-            {
-                this->deleteMessageBoxNextFrame = true;
+        // With non-blocking msgbox, nothing special to do on release.
+    }
+}
+
+void Scr::showMsgBox(const char* title,
+                     const char* body,
+                     const char* btnLeft,
+                     const char* btnRight,
+                     void (*onLeft)(),
+                     void (*onRight)(),
+                     bool modal)
+{
+    // Remove any previous dialog/backdrop
+    if (msgbox)          { lv_obj_del(msgbox);          msgbox = nullptr; }
+    if (msgbox_backdrop) { lv_obj_del(msgbox_backdrop); msgbox_backdrop = nullptr; }
+
+    lv_obj_t* parent = this->scr;
+
+    if (modal) {
+        msgbox_backdrop = lv_obj_create(parent);
+        lv_obj_remove_style_all(msgbox_backdrop);
+        lv_obj_set_size(msgbox_backdrop, lv_pct(100), lv_pct(100));
+        lv_obj_set_style_bg_opa(msgbox_backdrop, LV_OPA_50, 0);
+        parent = msgbox_backdrop;
+    }
+
+    // Create msgbox container
+    msgbox = lv_msgbox_create(parent);
+    lv_obj_center(msgbox);
+    lv_obj_set_style_max_width(msgbox, lv_pct(90), 0);
+
+    // Title & body (safe to pass empty strings)
+    if (hasTxt(title)) lv_msgbox_add_title(msgbox, safeTxt(title));
+    if (hasTxt(body))  lv_msgbox_add_text (msgbox, safeTxt(body));
+
+    // Footer buttons: create only when non-empty
+    if (hasTxt(btnLeft)) {
+        lv_obj_t* b = lv_msgbox_add_footer_button(msgbox, btnLeft);
+        lv_obj_set_flex_grow(b, 1);
+        // attach callback
+        auto* data = new MsgBtnData{ this, onLeft };
+        lv_obj_add_event_cb(b, [](lv_event_t* e){
+            auto* d = (MsgBtnData*) lv_event_get_user_data(e);
+            if (d && d->cb) d->cb();
+            if (d && d->self && d->self->msgbox) lv_msgbox_close_async(d->self->msgbox);
+            delete d;
+        }, LV_EVENT_CLICKED, (void*)data);
+    }
+
+    if (hasTxt(btnRight)) {
+        lv_obj_t* b = lv_msgbox_add_footer_button(msgbox, btnRight);
+        lv_obj_set_flex_grow(b, 1);
+        auto* data = new MsgBtnData{ this, onRight };
+        lv_obj_add_event_cb(b, [](lv_event_t* e){
+            auto* d = (MsgBtnData*) lv_event_get_user_data(e);
+            if (d && d->cb) d->cb();
+            if (d && d->self && d->self->msgbox) lv_msgbox_close_async(d->self->msgbox);
+            delete d;
+        }, LV_EVENT_CLICKED, (void*)data);
+    }
+
+    // Style tweaks (optional)
+    lv_obj_set_style_bg_color(msgbox, lv_color_hex(THEME_COLOR_DARK), LV_PART_MAIN);
+    lv_obj_t* header = lv_msgbox_get_header(msgbox);
+    if (header) {
+        lv_obj_set_style_bg_color(header, lv_color_hex(THEME_COLOR_MEDIUM), LV_PART_MAIN);
+    }
+    lv_obj_set_style_border_color(msgbox, lv_color_hex(THEME_COLOR_LIGHT), LV_PART_MAIN);
+    lv_obj_set_width(msgbox, DISPLAY_WIDTH - 20);
+
+    // Clean up pointers when msgbox is deleted
+    lv_obj_add_event_cb(msgbox, [](lv_event_t* e){
+        if (lv_event_get_code(e) == LV_EVENT_DELETE) {
+            auto* self = (Scr*) lv_event_get_user_data(e);
+            if (!self) return;
+            if (self->msgbox_backdrop) {
+                lv_obj_del_async(self->msgbox_backdrop);
+                self->msgbox_backdrop = nullptr;
             }
+            self->msgbox = nullptr;
+            self->msgbox_visible = false;
         }
-    }
+    }, LV_EVENT_DELETE, this);
+
+    msgbox_visible = true;
+    lv_obj_move_foreground(msgbox);
+    if (msgbox_backdrop) lv_obj_move_foreground(msgbox_backdrop);
 }
 
-void dialog_clicked_function(lv_event_t *e)
+void Scr::closeMsgBox()
 {
-    lv_event_code_t event_code = lv_event_get_code(e);
-    lv_obj_t *target = (lv_obj_t *)lv_event_get_target(e);
-    DialogData *dialogData = (DialogData *)lv_event_get_user_data(e);
-    if (event_code == LV_EVENT_CLICKED)
-    {
-        currentScr->deleteMessageBoxNextFrame = true; // This should really call this scr instead but i don't appear to have any way to know which one to access hmm... so just using the global currentScr instead
-        resetTouchInputFrame();
-        if (dialogData->callback != NULL)
-        {
-            dialogData->callback();
-        }
-    }
-}
-
-bool Scr::isMsgBoxDisplayed()
-{
-    return this->mb_dialog != NULL;
-}
-
-void Scr::showMsgBox(const char *title, const char *text, const char *yesText, const char *noText, std::function<void()> onYes, std::function<void()> onNo, bool forceButtonPress)
-{
-    resetTouchInputFrame();
-    this->mb_dialog = lv_msgbox_create(this->scr);
-    this->mb_force_button_press = forceButtonPress;
-
-    this->dialogDataYes.callback = onYes;
-    this->dialogDataYes.type = 0; // not used
-
-    this->dialogDataNo.callback = onNo;
-    this->dialogDataNo.type = 0; // not used
-
-    if (title != NULL)
-    {
-        lv_msgbox_add_title(this->mb_dialog, title);
-    }
-    if (text != NULL)
-    {
-        lv_msgbox_add_text(this->mb_dialog, text);
-    }
-    if (yesText != NULL)
-    {
-        lv_obj_t *yesbtn = lv_msgbox_add_footer_button(this->mb_dialog, yesText);
-        lv_obj_set_flex_grow(yesbtn, 1);
-        lv_obj_add_event_cb(yesbtn, dialog_clicked_function, LV_EVENT_CLICKED, (void *)&this->dialogDataYes);
-        lv_obj_set_style_bg_color(yesbtn, lv_color_hex(THEME_COLOR_LIGHT), LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_align(yesbtn, LV_ALIGN_TOP_LEFT);
-    }
-    if (noText != NULL)
-    {
-        lv_obj_t *nobtn = lv_msgbox_add_footer_button(this->mb_dialog, noText);
-        lv_obj_set_flex_grow(nobtn, 1);
-        lv_obj_add_event_cb(nobtn, dialog_clicked_function, LV_EVENT_CLICKED, (void *)&this->dialogDataNo);
-        lv_obj_set_style_bg_color(nobtn, lv_color_hex(THEME_COLOR_MEDIUM), LV_PART_MAIN | LV_STATE_DEFAULT);
-        lv_obj_set_align(nobtn, LV_ALIGN_BOTTOM_LEFT);
-    }
-    // lv_obj_t *footer = lv_msgbox_get_footer(this->mb_dialog);
-    // lv_obj_set_flex_grow(footer, 1);
-    //  lv_msgbox_add_close_button(this->mb_dialog); // x button crashes it due to our implementation... I'm guessing it is trying to delete ittself after we have already deleted it? we don't really need it and ui looks better without it anyways.
-
-    lv_obj_set_width(this->mb_dialog, DISPLAY_WIDTH - 20);
-
-    lv_obj_set_style_bg_color(this->mb_dialog, lv_color_hex(THEME_COLOR_DARK), LV_PART_MAIN | LV_STATE_DEFAULT); // darker, bg of main
-    if (lv_msgbox_get_header(this->mb_dialog) != NULL)
-    {
-        lv_obj_set_style_bg_color(lv_msgbox_get_header(this->mb_dialog), lv_color_hex(THEME_COLOR_MEDIUM), LV_PART_MAIN | LV_STATE_DEFAULT); // halway darkness, header
-    }
-    lv_obj_set_style_border_color(this->mb_dialog, lv_color_hex(THEME_COLOR_LIGHT), LV_PART_MAIN | LV_STATE_DEFAULT); // light purple, border
-}
-
-void Scr::loop()
-{
-    if (this->deleteMessageBoxNextFrame)
-    {
-        lv_msgbox_close(this->mb_dialog);
-        this->mb_dialog = NULL;
-        this->deleteMessageBoxNextFrame = false;
-    }
-    handleFunctionRunOnNextFrame();
-    SimplePoint tp = {touchX(), touchY()};
-    if (isJustPressed())
-    {
-        this->runTouchInput(tp, true);
-    }
-    if (isJustReleased())
-    {
-        this->runTouchInput(tp, false);
-    }
-    this->updatePressureValues();
-    this->alert->loop();
+    if (msgbox) lv_msgbox_close_async(msgbox);
 }
 
 void updatePressure(Scr *scr, lv_obj_t *obj, int index, bool isHeightSensorPercentage)
@@ -192,10 +181,9 @@ void updatePressure(Scr *scr, lv_obj_t *obj, int index, bool isHeightSensorPerce
             lv_label_set_text_fmt(obj, "%u PSI", currentPressures[index]);
         }
         else
-        { // UNITS_MODE::BAR but %f doesn't work
-
+        {
             float val = currentPressures[index] / 14.5038f;
-            val = val * 100; // move decimal over 2
+            val = val * 100;
             int b = (int)val % 100;
             int a = ((int)val - b) / 100;
             lv_label_set_text_fmt(obj, "%i.%i Bar", a, b);
@@ -210,9 +198,21 @@ void Scr::updatePressureValues()
     {
         bool hs = statusBittset & (1 << StatusPacketBittset::HEIGHT_SENSOR_MODE);
         updatePressure(this, this->ui_lblPressureFrontPassenger, WHEEL_FRONT_PASSENGER, hs);
-        updatePressure(this, this->ui_lblPressureRearPassenger, WHEEL_REAR_PASSENGER, hs);
-        updatePressure(this, this->ui_lblPressureFrontDriver, WHEEL_FRONT_DRIVER, hs);
-        updatePressure(this, this->ui_lblPressureRearDriver, WHEEL_REAR_DRIVER, hs);
-        updatePressure(this, this->ui_lblPressureTank, _TANK_INDEX, false);
+        updatePressure(this, this->ui_lblPressureRearPassenger,  WHEEL_REAR_PASSENGER,  hs);
+        updatePressure(this, this->ui_lblPressureFrontDriver,    WHEEL_FRONT_DRIVER,    hs);
+        updatePressure(this, this->ui_lblPressureRearDriver,     WHEEL_REAR_DRIVER,     hs);
+        updatePressure(this, this->ui_lblPressureTank,           _TANK_INDEX,           false);
     }
+}
+
+void Scr::loop()
+{
+    handleFunctionRunOnNextFrame();
+
+    SimplePoint tp = {touchX(), touchY()};
+    if (isJustPressed())  this->runTouchInput(tp, true);
+    if (isJustReleased()) this->runTouchInput(tp, false);
+
+    this->updatePressureValues();
+    if (this->alert) this->alert->loop();
 }

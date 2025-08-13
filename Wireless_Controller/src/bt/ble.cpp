@@ -129,7 +129,7 @@ void notifyCallback(BLERemoteCharacteristic *pBLERemoteCharacteristic,
     {
         timeoutMS = millis() + 5000;
         BTOasPacket *pkt = (BTOasPacket *)pData;
-        log_i("Rest packet received: %i", pkt->cmd);
+        // log_i("Rest packet received: %i", pkt->cmd);
         if (pkt->cmd == AUTHPACKET)
         {
             authenticationResult = ((AuthPacket *)pkt)->getBleAuthResult();
@@ -166,7 +166,7 @@ class MyClientCallback : public NimBLEClientCallbacks
 
     void onConnect(BLEClient *pclient) override
     {
-        log_i("onConnect %s", pclient->toString().c_str());
+        // log_i("onConnect %s", pclient->toString().c_str());
 
         // NimBLEDevice::injectPassKey(connInfo, BLE_PASSKEY);
         //  NimBLEDevice::startSecurity(desc);

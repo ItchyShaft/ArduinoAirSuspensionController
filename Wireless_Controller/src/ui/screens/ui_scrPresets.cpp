@@ -12,34 +12,31 @@ LV_IMG_DECLARE(selected_3);
 LV_IMG_DECLARE(selected_4);
 LV_IMG_DECLARE(selected_5);
 
-const int car_x = DISPLAY_WIDTH / 2 - img_car.header.w / 2;
-const int wheels_x = DISPLAY_WIDTH / 2 - img_wheels.header.w / 2;
-const int wheels_y = 88;
-const int car_y_1 = wheels_y - 21;
-const int car_y_2 = car_y_1 - 4;
-const int car_y_3 = car_y_2 - 4;
-const int car_y_4 = car_y_3 - 4;
-const int car_y_5 = car_y_4 - 4;
+const int car_x     = DISPLAY_WIDTH / 2 - img_car.header.w / 2;
+const int wheels_x  = DISPLAY_WIDTH / 2 - img_wheels.header.w / 2;
+const int wheels_y  = 88;
+const int car_y_1   = wheels_y - 21;
+const int car_y_2   = car_y_1 - 4;
+const int car_y_3   = car_y_2 - 4;
+const int car_y_4   = car_y_3 - 4;
+const int car_y_5   = car_y_4 - 4;
 
 SimpleRect fender1Offset = {40, 37, 72 - 40, 63 - 37};
 SimpleRect fender2Offset = {166, 35, 199 - 166, 60 - 35};
 
-// square 1: 40,37 -> 71, 63
-// square 2: 166,35 -> 198, 60
-
-void car_anim_func(lv_obj_t *obj, int32_t y)
+// Animation executor
+static void car_anim_func(lv_obj_t *obj, int32_t y)
 {
-
     lv_obj_set_y(obj, y);
     lv_obj_set_y(scrPresets.ww1, y + fender1Offset.y);
     lv_obj_set_y(scrPresets.ww2, y + fender2Offset.y);
-    // lv_obj_move_foreground(scrPresets.wheels);
 }
 
-void animCarPreset(ScrPresets *scr, lv_coord_t end)
+static void animCarPreset(ScrPresets *scr, lv_coord_t end)
 {
-    int duration = 1000;                       // animation duration in ms
-    lv_coord_t start = lv_obj_get_y(scr->car); // start is the current location
+    const int duration = 1000;                    // ms
+    const lv_coord_t start = lv_obj_get_y(scr->car);
+
     lv_anim_t a;
     lv_anim_init(&a);
     lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)car_anim_func);
@@ -53,7 +50,8 @@ void ScrPresets::init()
 {
     Scr::init();
 
-    lv_obj_add_flag(this->rect_bg, LV_OBJ_FLAG_HIDDEN); // hide grey background, we have a different one on this page
+    // remove the inherited gray bg
+    lv_obj_add_flag(this->rect_bg, LV_OBJ_FLAG_HIDDEN);
     lv_obj_delete(this->rect_bg);
 
     // background image
@@ -64,22 +62,22 @@ void ScrPresets::init()
     // wheel well 1
     this->ww1 = lv_obj_create(this->scr);
     lv_obj_remove_style_all(this->ww1);
-    lv_obj_get_style_border_width(this->ww1, 0);
+    lv_obj_set_style_border_width(this->ww1, 0, LV_PART_MAIN);       // FIX: set, not get
     lv_obj_set_size(this->ww1, fender1Offset.w, fender1Offset.h);
-    lv_obj_set_style_bg_color(this->ww1, lv_color_hex(0x0), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_remove_flag(this->ww1, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE)); /// Flags
-    lv_obj_set_style_bg_opa(this->ww1, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(this->ww1, lv_color_black(), LV_PART_MAIN);
+    lv_obj_remove_flag(this->ww1, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
+    lv_obj_set_style_bg_opa(this->ww1, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_x(this->ww1, car_x + fender1Offset.x);
     lv_obj_set_y(this->ww1, car_y_1 + fender1Offset.y);
 
     // wheel well 2
     this->ww2 = lv_obj_create(this->scr);
     lv_obj_remove_style_all(this->ww2);
-    lv_obj_get_style_border_width(this->ww2, 0);
+    lv_obj_set_style_border_width(this->ww2, 0, LV_PART_MAIN);       // FIX: set, not get
     lv_obj_set_size(this->ww2, fender2Offset.w, fender2Offset.h);
-    lv_obj_set_style_bg_color(this->ww2, lv_color_hex(0x0), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_remove_flag(this->ww2, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE)); /// Flags
-    lv_obj_set_style_bg_opa(this->ww2, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(this->ww2, lv_color_black(), LV_PART_MAIN);
+    lv_obj_remove_flag(this->ww2, (lv_obj_flag_t)(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
+    lv_obj_set_style_bg_opa(this->ww2, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_x(this->ww2, car_x + fender2Offset.x);
     lv_obj_set_y(this->ww2, car_y_1 + fender2Offset.y);
 
@@ -92,7 +90,6 @@ void ScrPresets::init()
     // car
     this->car = lv_image_create(this->scr);
     lv_image_set_src(this->car, &img_car);
-    // lv_obj_set_align(this->car, LV_ALIGN_CENTER);
     lv_obj_set_x(this->car, car_x);
     lv_obj_set_y(this->car, car_y_1);
 
@@ -122,12 +119,13 @@ void ScrPresets::init()
     lv_obj_set_x(this->btnPreset5, ctr_preset_5.cx - selected_5.header.w / 2);
     lv_obj_set_y(this->btnPreset5, ctr_preset_5.cy - selected_5.header.h / 2);
 
-    lv_obj_move_foreground(this->icon_navbar);                  // bring navbar to foreground
-    lv_obj_move_foreground(this->ui_lblPressureFrontPassenger); // pressures to foreground front
-    lv_obj_move_foreground(this->ui_lblPressureRearPassenger);  // pressures to foreground front
-    lv_obj_move_foreground(this->ui_lblPressureFrontDriver);    // pressures to foreground front
-    lv_obj_move_foreground(this->ui_lblPressureRearDriver);     // pressures to foreground front
-    lv_obj_move_foreground(this->ui_lblPressureTank);           // pressures to foreground front
+    // bring overlay labels to front
+    lv_obj_move_foreground(this->icon_navbar);
+    lv_obj_move_foreground(this->ui_lblPressureFrontPassenger);
+    lv_obj_move_foreground(this->ui_lblPressureRearPassenger);
+    lv_obj_move_foreground(this->ui_lblPressureFrontDriver);
+    lv_obj_move_foreground(this->ui_lblPressureRearDriver);
+    lv_obj_move_foreground(this->ui_lblPressureTank);
 
     this->hideSelectors();
     this->setPreset(3);
@@ -140,94 +138,80 @@ void ScrPresets::hideSelectors()
     lv_obj_add_flag(btnPreset3, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(btnPreset4, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(btnPreset5, LV_OBJ_FLAG_HIDDEN);
-};
+}
+
 void ScrPresets::setPreset(int num)
 {
-    if (currentPreset == num)
-    {
+    if (currentPreset == num) {
         this->showPresetDialog();
     }
     currentPreset = num;
     hideSelectors();
-    switch (num)
-    {
-    case 1:
-        animCarPreset(this, car_y_1);
-        lv_obj_remove_flag(btnPreset1, LV_OBJ_FLAG_HIDDEN);
-        break;
-    case 2:
-        animCarPreset(this, car_y_2);
-        lv_obj_remove_flag(btnPreset2, LV_OBJ_FLAG_HIDDEN);
-        break;
-    case 3:
-        animCarPreset(this, car_y_3);
-        lv_obj_remove_flag(btnPreset3, LV_OBJ_FLAG_HIDDEN);
-        break;
-    case 4:
-        animCarPreset(this, car_y_4);
-        lv_obj_remove_flag(btnPreset4, LV_OBJ_FLAG_HIDDEN);
-        break;
-    case 5:
-        animCarPreset(this, car_y_5);
-        lv_obj_remove_flag(btnPreset5, LV_OBJ_FLAG_HIDDEN);
-        break;
+
+    switch (num) {
+        case 1: animCarPreset(this, car_y_1); lv_obj_remove_flag(btnPreset1, LV_OBJ_FLAG_HIDDEN); break;
+        case 2: animCarPreset(this, car_y_2); lv_obj_remove_flag(btnPreset2, LV_OBJ_FLAG_HIDDEN); break;
+        case 3: animCarPreset(this, car_y_3); lv_obj_remove_flag(btnPreset3, LV_OBJ_FLAG_HIDDEN); break;
+        case 4: animCarPreset(this, car_y_4); lv_obj_remove_flag(btnPreset4, LV_OBJ_FLAG_HIDDEN); break;
+        case 5: animCarPreset(this, car_y_5); lv_obj_remove_flag(btnPreset5, LV_OBJ_FLAG_HIDDEN); break;
+        default: break;
     }
+
     requestPreset();
 }
 
 void ScrPresets::showPresetDialog()
 {
     static char text[100];
-    static char title[10];
-    // This is honestly quite shit
-    snprintf(text, sizeof(text), "  fd: %i                        fp: %i\n  rd: %i                        rp: %i", profilePressures[currentPreset - 1][WHEEL_FRONT_DRIVER], profilePressures[currentPreset - 1][WHEEL_FRONT_PASSENGER], profilePressures[currentPreset - 1][WHEEL_REAR_DRIVER], profilePressures[currentPreset - 1][WHEEL_REAR_PASSENGER]);
+    static char title[16]; // allow up to "Preset 12\0"
+
+    snprintf(text,  sizeof(text),
+        "  fd: %i                        fp: %i\n"
+        "  rd: %i                        rp: %i",
+        profilePressures[currentPreset - 1][WHEEL_FRONT_DRIVER],
+        profilePressures[currentPreset - 1][WHEEL_FRONT_PASSENGER],
+        profilePressures[currentPreset - 1][WHEEL_REAR_DRIVER],
+        profilePressures[currentPreset - 1][WHEEL_REAR_PASSENGER]);
+
     snprintf(title, sizeof(title), "Preset %i", currentPreset);
-    this->showMsgBox(title, text, NULL, "OK", []() -> void {}, []() -> void {}, false);
+
+    // Left button intentionally empty -> no left button created
+    this->showMsgBox(title, text, "", "OK",
+        []() -> void {},      // onLeft (unused)
+        []() -> void {},      // onRight (OK)
+        false);               // non-modal backdrop
 }
 
 void ScrPresets::runTouchInput(SimplePoint pos, bool down)
 {
     Scr::runTouchInput(pos, down);
-    if (down == false) // just released on button
-    {
-        if (!this->isMsgBoxDisplayed())
-        {
-            if (cr_contains(ctr_preset_1, pos))
-            {
-                setPreset(1);
-            }
-            if (cr_contains(ctr_preset_2, pos))
-            {
-                setPreset(2);
-            }
-            if (cr_contains(ctr_preset_3, pos))
-            {
-                setPreset(3);
-            }
-            if (cr_contains(ctr_preset_4, pos))
-            {
-                setPreset(4);
-            }
-            if (cr_contains(ctr_preset_5, pos))
-            {
-                setPreset(5);
-            }
-            if (sr_contains(preset_save, pos))
-            {
+
+    if (!down) { // on release
+        if (!this->isMsgBoxDisplayed()) {
+
+            if (cr_contains(ctr_preset_1, pos)) setPreset(1);
+            if (cr_contains(ctr_preset_2, pos)) setPreset(2);
+            if (cr_contains(ctr_preset_3, pos)) setPreset(3);
+            if (cr_contains(ctr_preset_4, pos)) setPreset(4);
+            if (cr_contains(ctr_preset_5, pos)) setPreset(5);
+
+            if (sr_contains(preset_save, pos)) {
                 static char buf[40];
                 snprintf(buf, sizeof(buf), "Save current height to preset %i?", currentPreset);
-                this->showMsgBox(buf, NULL, "Confirm", "Cancel", []() -> void
-                                 {
-                                     Serial.println("save preset");
-                                     SaveCurrentPressuresToProfilePacket pkt(currentPreset - 1);
-                                     sendRestPacket(&pkt);
-                                     showDialog("Saved Preset!", lv_color_hex(THEME_COLOR_LIGHT));
-                                     requestPreset(); // update data not that it's saved
-                                 },
-                                 []() -> void {}, false);
+
+                this->showMsgBox(buf, "", "Confirm", "Cancel",
+                    []() -> void { // on Confirm
+                        Serial.println("save preset");
+                        SaveCurrentPressuresToProfilePacket pkt(currentPreset - 1);
+                        sendRestPacket(&pkt);
+                        showDialog("Saved Preset!", lv_color_hex(THEME_COLOR_LIGHT));
+                        requestPreset();
+                    },
+                    []() -> void {}, // on Cancel
+                    false);
             }
-            if (sr_contains(preset_load, pos))
-            {
+
+            if (sr_contains(preset_load, pos)) {
                 Serial.println("load preset");
                 AirupQuickPacket pkt(currentPreset - 1);
                 sendRestPacket(&pkt);

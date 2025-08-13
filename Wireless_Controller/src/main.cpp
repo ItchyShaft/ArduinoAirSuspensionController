@@ -9,6 +9,14 @@
 
 #include "utils/util.h"
 
+#include "ui/gesture_swipe.h"
+
+#include "utils/PWR_Key.h"
+
+extern "C" {
+  #include "utils/BAT_Driver.h"
+}
+
 void OnAddOneClicked(lv_event_t *e)
 {
     static uint32_t cnt = 0;
@@ -40,6 +48,9 @@ void stopBurnInFix()
 #define DIM_SCREEN_TIME 60 * 1000 * getscreenDimTimeM()
 unsigned long dimScreenTime = 0;
 bool dimmed = false;
+
+
+
 void setup()
 {
 #ifdef ARDUINO_USB_CDC_ON_BOOT
@@ -66,6 +77,10 @@ void setup()
         return;
     }
 
+
+    PWR_Init();
+    BAT_Init();
+
     setup_tasks();
 
     // out display file for the lcd:
@@ -78,6 +93,9 @@ void setup()
     // lv_disp_set_rotation(disp, LV_DISP_ROT_270);
 
     ui_init();
+    
+
+    // gestures_init();
 
     burnInRect = lv_obj_create(scrHome.scr);
     lv_obj_remove_style_all(burnInRect);
@@ -129,6 +147,8 @@ void setup()
 }
 
 auto lv_last_tick = millis();
+static uint32_t pwr_next = 0;
+
 void loop()
 {
     auto const now = millis();
@@ -174,6 +194,20 @@ void loop()
         dialogLoop();
         safetyModeMsgBoxCheck();
     }
+
+    // Power-key state machine tick every 100 ms
+    if (now >= pwr_next) {
+        PWR_Loop();
+        pwr_next = now + 100; // 100 ms period → Device_*_Time in 0.1s units
+    }
+
+    static uint32_t t = 0;
+    if (millis() - t > 2000) {
+    t = millis();
+    ESP_LOGI("BAT", "raw=%d mv_pin=%d Vbat=%.3f",
+            BAT_Get_Raw(), BAT_Get_mVPin(), BAT_Get_Volts());
+    }
+
 
     // Update the ticker
     lv_tick_inc(now - lv_last_tick);
