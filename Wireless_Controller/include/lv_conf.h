@@ -142,7 +142,11 @@
     #if LV_USE_DRAW_SW_ASM == LV_DRAW_SW_ASM_CUSTOM
         #define  LV_DRAW_SW_ASM_CUSTOM_INCLUDE ""
     #endif
+
+    #define LV_USE_DRAW_SW_COMPLEX_GRADIENTS 1
 #endif
+
+
 
 /* Use NXP's VG-Lite GPU on iMX RTxxx platforms. */
 #define LV_USE_DRAW_VGLITE 0
@@ -519,7 +523,7 @@
 
 #define LV_USE_CHECKBOX   1
 
-#define LV_USE_DROPDOWN   0   /*Requires: lv_label*/
+#define LV_USE_DROPDOWN   1   /*Requires: lv_label*/
 
 #define LV_USE_IMAGE      1   /*Requires: lv_label*/
 
@@ -544,11 +548,11 @@
 
 #define LV_USE_MSGBOX     1
 
-#define LV_USE_ROLLER     0   /*Requires: lv_label*/
+#define LV_USE_ROLLER     1   /*Requires: lv_label*/
 
 #define LV_USE_SCALE      0
 
-#define LV_USE_SLIDER     0   /*Requires: lv_bar*/
+#define LV_USE_SLIDER     1   /*Requires: lv_bar*/
 
 #define LV_USE_SPAN       0
 #if LV_USE_SPAN
@@ -556,7 +560,7 @@
     #define LV_SPAN_SNIPPET_STACK_SIZE 64
 #endif
 
-#define LV_USE_SPINBOX    0
+#define LV_USE_SPINBOX    1
 
 #define LV_USE_SPINNER    0
 
